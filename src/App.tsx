@@ -27,7 +27,7 @@ const HORIZON_URL = "https://horizon-testnet.stellar.org";
 const server = new Horizon.Server(HORIZON_URL);
 
 export default function App() {
-  const [account, setAccount] = useState<string>("");
+  const [account, setAccount] = useState<string>("" );
   const [balance, setBalance] = useState<string>("0");
   const [recipient, setRecipient] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
@@ -100,9 +100,9 @@ export default function App() {
       })
         .addOperation(
           Operation.payment({
-            destination: recipient,
+            destination: recipient.trim(),
             asset: Asset.native(),
-            amount: amount,
+            amount: amount.trim(),
           })
         )
         .setTimeout(30)
@@ -120,11 +120,16 @@ export default function App() {
       );
       const result = await server.submitTransaction(txToSubmit);
 
-      setStatusMessage({ text: "Payment Sent Successfully!", type: "success" });
+      setStatusMessage({ text: "Payment Sent Successfully! Updating balance...", type: "success" });
       setTxHash(result.hash);
       setAmount("");
       setRecipient("");
-      await fetchBalance(account);
+
+      // Wait 2.5 seconds for the Stellar ledger to update before fetching new balance
+      setTimeout(async () => {
+        await fetchBalance(account);
+      }, 2500);
+
     } catch (err: any) {
       setStatusMessage({ text: `Transaction Failed: ${err.message || "Unknown error"}`, type: "error" });
     } finally {
@@ -223,11 +228,11 @@ export default function App() {
                 style={{ background: "transparent", border: "none", color: "#8b949e", cursor: "pointer" }}
                 title="Refresh Balance"
               >
-                <RefreshCw size={14} className={isRefreshing ? "spin" : ""} />
+                <RefreshCw size={14} />
               </button>
             </div>
             <div style={{ fontSize: "28px", fontWeight: "700", color: "#f0f6fc", marginBottom: "12px" }}>
-              {parseFloat(balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}{" "}
+              {parseFloat(balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 7 })}{" "}
               <span style={{ fontSize: "16px", color: "#58a6ff" }}>XLM</span>
             </div>
             <div style={{
@@ -300,7 +305,7 @@ export default function App() {
               <div style={{ position: "relative" }}>
                 <input
                   type="number"
-                  step="0.01"
+                  step="0.00001"
                   min="0.00001"
                   required
                   placeholder="0.00"
