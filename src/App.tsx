@@ -20,33 +20,59 @@ import {
   Copy, 
   Check, 
   LogOut, 
-  RefreshCw 
+  RefreshCw,
+  Lock,
+  User,
+  KeyRound
 } from "lucide-react";
 
 const HORIZON_URL = "https://horizon-testnet.stellar.org";
 const server = new Horizon.Server(HORIZON_URL);
 
 export default function App() {
-  const [account, setAccount] = useState<string>("" );
+  // Auth state
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [authError, setAuthError] = useState<string>("");
+
+  // Stellar state
+  const [account, setAccount] = useState<string>("");
   const [balance, setBalance] = useState<string>("0");
   const [recipient, setRecipient] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: "success" | "error" | "info" } | null>(null);
   const [txHash, setTxHash] = useState<string>("");
   const [copied, setCopied] = useState<boolean>(false);
 
+  // Simple demo login handler
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (username.trim().length >= 3 && password.length >= 4) {
+      setIsAuthenticated(true);
+      setAuthError("");
+    } else {
+      setAuthError("Username must be 3+ chars & Password 4+ chars.");
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setAccount("");
+    setBalance("0");
+    setPassword("");
+    setTxHash("");
+    setStatusMessage(null);
+  };
+
   const fetchBalance = async (publicKey: string) => {
-    setIsRefreshing(true);
     try {
       const acc = await server.loadAccount(publicKey);
       const nativeBalance = acc.balances.find((b) => b.asset_type === "native");
       setBalance(nativeBalance ? nativeBalance.balance : "0");
     } catch {
       setBalance("0 (Unfunded Account)");
-    } finally {
-      setIsRefreshing(false);
     }
   };
 
@@ -71,7 +97,7 @@ export default function App() {
     }
   };
 
-  const handleDisconnect = () => {
+  const handleDisconnectWallet = () => {
     setAccount("");
     setBalance("0");
     setTxHash("");
@@ -125,7 +151,6 @@ export default function App() {
       setAmount("");
       setRecipient("");
 
-      // Wait 2.5 seconds for the Stellar ledger to update before fetching new balance
       setTimeout(async () => {
         await fetchBalance(account);
       }, 2500);
@@ -155,28 +180,122 @@ export default function App() {
             Testnet
           </span>
         </div>
-        {account && (
-          <button 
-            onClick={handleDisconnect} 
-            title="Disconnect Wallet"
-            style={{
-              background: "#21262d",
-              border: "1px solid #30363d",
-              color: "#c9d1d9",
-              borderRadius: "8px",
-              padding: "8px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center"
-            }}
-          >
-            <LogOut size={16} />
-          </button>
+        {isAuthenticated && (
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "13px", color: "#8b949e" }}>@{username}</span>
+            <button 
+              onClick={handleLogout} 
+              title="Lock / Sign Out"
+              style={{
+                background: "#21262d",
+                border: "1px solid #30363d",
+                color: "#f85149",
+                borderRadius: "8px",
+                padding: "8px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center"
+              }}
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
         )}
       </div>
 
-      {!account ? (
-        <div style={{ textAlign: "center", padding: "40px 10px" }}>
+      {/* Screen 1: App Auth / Login */}
+      {!isAuthenticated ? (
+        <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div style={{ textAlign: "center", marginBottom: "8px" }}>
+            <div style={{
+              width: "56px",
+              height: "56px",
+              background: "#21262d",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 12px auto",
+              color: "#58a6ff"
+            }}>
+              <Lock size={24} />
+            </div>
+            <h2 style={{ fontSize: "18px", color: "#f0f6fc" }}>App Security Access</h2>
+            <p style={{ fontSize: "13px", color: "#8b949e" }}>Enter your credentials to access the payment terminal</p>
+          </div>
+
+          <div>
+            <label style={{ fontSize: "13px", color: "#c9d1d9", display: "block", marginBottom: "6px" }}>Username</label>
+            <div style={{ position: "relative" }}>
+              <input
+                type="text"
+                required
+                placeholder="developer"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                style={{
+                  width: "100%",
+                  background: "#0d1117",
+                  border: "1px solid #30363d",
+                  color: "#f0f6fc",
+                  borderRadius: "8px",
+                  padding: "10px 12px 10px 38px",
+                  fontSize: "14px",
+                  outline: "none"
+                }}
+              />
+              <User size={16} style={{ position: "absolute", left: "12px", top: "12px", color: "#8b949e" }} />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontSize: "13px", color: "#c9d1d9", display: "block", marginBottom: "6px" }}>Password / PIN</label>
+            <div style={{ position: "relative" }}>
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={{
+                  width: "100%",
+                  background: "#0d1117",
+                  border: "1px solid #30363d",
+                  color: "#f0f6fc",
+                  borderRadius: "8px",
+                  padding: "10px 12px 10px 38px",
+                  fontSize: "14px",
+                  outline: "none"
+                }}
+              />
+              <KeyRound size={16} style={{ position: "absolute", left: "12px", top: "12px", color: "#8b949e" }} />
+            </div>
+          </div>
+
+          {authError && (
+            <p style={{ color: "#f85149", fontSize: "13px" }}>{authError}</p>
+          )}
+
+          <button
+            type="submit"
+            style={{
+              background: "#238636",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "8px",
+              padding: "12px",
+              fontSize: "14px",
+              fontWeight: "600",
+              cursor: "pointer",
+              marginTop: "8px"
+            }}
+          >
+            Unlock Application
+          </button>
+        </form>
+      ) : !account ? (
+        /* Screen 2: Wallet Connect */
+        <div style={{ textAlign: "center", padding: "20px 10px" }}>
           <div style={{
             width: "60px",
             height: "60px",
@@ -185,20 +304,20 @@ export default function App() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            margin: "0 auto 20px auto",
+            margin: "0 auto 16px auto",
             color: "#58a6ff"
           }}>
-            <Wallet size={30} />
+            <Wallet size={28} />
           </div>
-          <h2 style={{ fontSize: "18px", marginBottom: "8px" }}>Connect your wallet</h2>
-          <p style={{ fontSize: "14px", color: "#8b949e", marginBottom: "24px" }}>
-            Connect with Freighter to send and receive Testnet XLM seamlessly.
+          <h2 style={{ fontSize: "18px", marginBottom: "8px" }}>Connect Stellar Wallet</h2>
+          <p style={{ fontSize: "14px", color: "#8b949e", marginBottom: "20px" }}>
+            Link your Freighter Testnet wallet to proceed.
           </p>
           <button
             onClick={handleConnect}
             style={{
               width: "100%",
-              background: "#238636",
+              background: "#1f6feb",
               color: "#ffffff",
               border: "none",
               borderRadius: "8px",
@@ -212,26 +331,34 @@ export default function App() {
           </button>
         </div>
       ) : (
+        /* Screen 3: Balance & Payment Terminal */
         <div>
-          {/* Balance Card */}
           <div style={{
             background: "#21262d",
             border: "1px solid #30363d",
             borderRadius: "12px",
             padding: "16px",
-            marginBottom: "24px"
+            marginBottom: "20px"
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
               <span style={{ fontSize: "12px", color: "#8b949e", textTransform: "uppercase", letterSpacing: "0.5px" }}>Available Balance</span>
-              <button 
-                onClick={() => fetchBalance(account)} 
-                style={{ background: "transparent", border: "none", color: "#8b949e", cursor: "pointer" }}
-                title="Refresh Balance"
-              >
-                <RefreshCw size={14} />
-              </button>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button 
+                  onClick={() => fetchBalance(account)} 
+                  style={{ background: "transparent", border: "none", color: "#8b949e", cursor: "pointer" }}
+                  title="Refresh Balance"
+                >
+                  <RefreshCw size={14} />
+                </button>
+                <button 
+                  onClick={handleDisconnectWallet} 
+                  style={{ background: "transparent", border: "none", color: "#f85149", cursor: "pointer", fontSize: "12px" }}
+                >
+                  Disconnect
+                </button>
+              </div>
             </div>
-            <div style={{ fontSize: "28px", fontWeight: "700", color: "#f0f6fc", marginBottom: "12px" }}>
+            <div style={{ fontSize: "26px", fontWeight: "700", color: "#f0f6fc", marginBottom: "10px" }}>
               {parseFloat(balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 7 })}{" "}
               <span style={{ fontSize: "16px", color: "#58a6ff" }}>XLM</span>
             </div>
@@ -255,8 +382,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* Payment Form */}
-          <form onSubmit={handleSendPayment} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <form onSubmit={handleSendPayment} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             <div>
               <label style={{ fontSize: "13px", color: "#c9d1d9", display: "block", marginBottom: "6px" }}>Recipient Address</label>
               <input
@@ -343,7 +469,7 @@ export default function App() {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "8px",
-                marginTop: "8px"
+                marginTop: "4px"
               }}
             >
               <Send size={16} />
@@ -356,7 +482,7 @@ export default function App() {
       {/* Status & Feedback */}
       {statusMessage && (
         <div style={{
-          marginTop: "20px",
+          marginTop: "16px",
           padding: "12px",
           borderRadius: "8px",
           display: "flex",
