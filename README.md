@@ -38,12 +38,17 @@ Fund your account via the Stellar Laboratory Friendbot.
 ## 📸 Submission Proofs
 1. Wallet Connected State
 Shows active connection to the Freighter wallet with truncated public key.
+https://github.com/adewolescott/stellar-white-belt/blob/main/screenshots/01-wallet-connected.png
 
 2. Balance Displayed
 Shows live native XLM balance loaded from Stellar Horizon Testnet.
 
-3. Successful Testnet Transaction
-Shows recipient address, amount, and payment submission.
+https://github.com/adewolescott/stellar-white-belt/blob/main/screenshots/02-balance-displayed.png
 
-4. Transaction Result Shown to User
+4. Successful Testnet Transaction
+Shows recipient address, amount, and payment submission.
+https://github.com/adewolescott/stellar-white-belt/blob/main/screenshots/03-transaction-in-progress.png
+
+5. Transaction Result Shown to User
 Shows payment success confirmation, transaction hash, and clickable Stellar Expert link.
+https://github.com/adewolescott/stellar-white-belt/blob/main/screenshots/04-transaction-result.png
